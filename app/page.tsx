@@ -1,0 +1,398 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import Image from "next/image";
+import { createSupabaseBrowserClient } from "@/lib/supabase";
+import type { GalleryImage, Restaurant } from "@/lib/types";
+
+const RESTAURANT_SLUG = process.env.NEXT_PUBLIC_RESTAURANT_SLUG;
+
+async function fetchRestaurant() {
+  if (!RESTAURANT_SLUG) {
+    return null;
+  }
+
+  const supabase = createSupabaseBrowserClient();
+
+  const { data, error } = await supabase
+    .from<Restaurant>("restaurants")
+    .select("*")
+    .eq("slug", RESTAURANT_SLUG)
+    .single();
+
+  if (error) {
+    console.error("Erreur chargement restaurant", error);
+    return null;
+  }
+
+  return data;
+}
+
+async function fetchGallery(restaurantId: string) {
+  const supabase = createSupabaseBrowserClient();
+
+  const { data, error } = await supabase
+    .from<GalleryImage>("gallery_images")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .order("position", { ascending: true });
+
+  if (error) {
+    console.error("Erreur chargement galerie", error);
+    return [];
+  }
+
+  return data ?? [];
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const restaurant = await fetchRestaurant();
+
+  if (!restaurant) {
+    return {
+      title: "Restaurant introuvable",
+      description: "Le restaurant demandé est introuvable.",
+    };
+  }
+
+  return {
+    title: restaurant.seo_title ?? restaurant.name,
+    description:
+      restaurant.seo_description ??
+      `Découvrez ${restaurant.name} et sa carte.`,
+  };
+}
+
+export default async function Home() {
+  const restaurant = await fetchRestaurant();
+
+  if (!restaurant) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-emerald-900 px-4">
+        <div className="rounded-2xl bg-white/95 px-8 py-10 text-center shadow-xl">
+          <h1 className="mb-4 text-3xl font-semibold text-gray-900">
+            Restaurant introuvable
+          </h1>
+          <p className="text-gray-600">
+            Vérifiez la configuration de{" "}
+            <span className="font-mono text-sm">
+              NEXT_PUBLIC_RESTAURANT_SLUG
+            </span>{" "}
+            ou réessayez plus tard.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  const gallery = await fetchGallery(restaurant.id);
+
+  const heroHasImage = Boolean(restaurant.cover_image_url);
+
+  const heroBackgroundStyle = heroHasImage
+    ? {
+        backgroundImage: `url(${restaurant.cover_image_url})`,
+      }
+    : undefined;
+
+  const infoBlocks = [
+    {
+      label: "Adresse",
+      value: restaurant.address,
+      icon: (
+        <svg
+          className="h-6 w-6 text-emerald-600"
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <path
+            d="M12 21s-6-5.686-6-11a6 6 0 1112 0c0 5.314-6 11-6 11z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle
+            cx="12"
+            cy="10"
+            r="2.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+        </svg>
+      ),
+    },
+    {
+      label: "Horaires",
+      value: restaurant.hours,
+      icon: (
+        <svg
+          className="h-6 w-6 text-emerald-600"
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="9"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+          <path
+            d="M12 7v5l3 2"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+    },
+    {
+      label: "Téléphone",
+      value: restaurant.phone,
+      icon: (
+        <svg
+          className="h-6 w-6 text-emerald-600"
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <path
+            d="M6.5 4h2l1.5 4-1.5 1a11 11 0 005 5l1-1.5 4 1.5v2a2 2 0 01-2 2A13 13 0 015 6a2 2 0 011.5-2z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+    },
+    {
+      label: "Email",
+      value: restaurant.email,
+      icon: (
+        <svg
+          className="h-6 w-6 text-emerald-600"
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <rect
+            x="3.75"
+            y="5"
+            width="16.5"
+            height="14"
+            rx="2"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+          <path
+            d="M5 7.5L12 12l7-4.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+    },
+  ].filter((b) => b.value);
+
+  return (
+    <main className="min-h-screen bg-gray-50">
+      {/* HERO */}
+      <section
+        className={`relative flex min-h-screen items-center justify-center px-4 py-16 ${
+          heroHasImage ? "bg-cover bg-center" : "bg-emerald-900"
+        }`}
+        style={heroBackgroundStyle}
+      >
+        <div className="absolute inset-0 bg-black/50" />
+
+        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center text-center text-white">
+          {restaurant.logo_url && (
+            <div className="mb-6 h-20 w-20 overflow-hidden rounded-full bg-white/10 ring-2 ring-white/30">
+              <Image
+                src={restaurant.logo_url}
+                alt={restaurant.name}
+                width={80}
+                height={80}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          )}
+
+          <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
+            {restaurant.name}
+          </h1>
+
+          {restaurant.tagline && (
+            <p className="mb-8 text-lg text-white/80 sm:text-xl">
+              {restaurant.tagline}
+            </p>
+          )}
+
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link
+              href="/menu"
+              className="rounded-full border border-white bg-white/10 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-white hover:text-emerald-900"
+            >
+              Voir la carte
+            </Link>
+
+            {restaurant.phone && (
+              <a
+                href={`tel:${restaurant.phone}`}
+                className="rounded-full bg-emerald-500 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400"
+              >
+                Appeler
+              </a>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* INFO BAR */}
+      {infoBlocks.length > 0 && (
+        <section className="bg-white py-12">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-start justify-center gap-8 px-4">
+            {infoBlocks.map((block) => (
+              <div
+                key={block.label}
+                className="flex max-w-xs items-start gap-3"
+              >
+                <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50">
+                  {block.icon}
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                    {block.label}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-700 whitespace-pre-line">
+                    {block.value}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ABOUT */}
+      {restaurant.about && (
+        <section className="bg-gray-50 py-16">
+          <div className="mx-auto max-w-3xl px-4 text-center">
+            <h2 className="mb-4 text-3xl font-semibold tracking-tight text-gray-900">
+              À propos
+            </h2>
+            <p className="text-lg leading-relaxed text-gray-600 whitespace-pre-line">
+              {restaurant.about}
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* GALLERY */}
+      {gallery.length > 0 && (
+        <section className="bg-white py-16">
+          <div className="mx-auto max-w-6xl px-4">
+            <h2 className="mb-8 text-center text-3xl font-semibold tracking-tight text-gray-900">
+              Galerie
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {gallery.map((image) => (
+                <div
+                  key={image.id}
+                  className="group overflow-hidden rounded-xl bg-gray-100 shadow-sm"
+                >
+                  <div className="relative h-64 overflow-hidden">
+                    <Image
+                      src={image.image_url}
+                      alt={restaurant.name}
+                      fill
+                      className="object-cover transition duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* FOOTER */}
+      <footer className="bg-gray-900 py-8">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-4 text-center sm:flex-row sm:text-left">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-emerald-400">
+              {restaurant.name}
+            </p>
+            {restaurant.address && (
+              <p className="mt-1 text-sm text-gray-400">{restaurant.address}</p>
+            )}
+          </div>
+
+          <div className="flex flex-col items-center gap-4 sm:flex-row">
+            <div className="flex items-center gap-3">
+              {restaurant.facebook_url && (
+                <a
+                  href={restaurant.facebook_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-gray-400 transition hover:text-white"
+                  aria-label="Facebook"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M13.5 22v-7h2.25a.75.75 0 00.74-.63l.38-2.5a.75.75 0 00-.74-.87H13.5V9.25A1.25 1.25 0 0114.75 8h1.25a.75.75 0 00.75-.75V4.5a.75.75 0 00-.75-.75H14a4.75 4.75 0 00-4.75 4.75v2.5H7.75a.75.75 0 00-.75.75v2.5c0 .414.336.75.75.75h1.5v7h4.25z" />
+                  </svg>
+                </a>
+              )}
+              {restaurant.instagram_url && (
+                <a
+                  href={restaurant.instagram_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-gray-400 transition hover:text-white"
+                  aria-label="Instagram"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <rect
+                      x="3.5"
+                      y="3.5"
+                      width="17"
+                      height="17"
+                      rx="5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
+                    <circle cx="17" cy="7" r="1" fill="currentColor" />
+                  </svg>
+                </a>
+              )}
+            </div>
+
+            <Link
+              href="/menu"
+              className="text-sm font-medium text-emerald-400 transition hover:text-emerald-300"
+            >
+              Voir la carte
+            </Link>
+          </div>
+        </div>
+      </footer>
+    </main>
+  );
+}
