@@ -4,6 +4,8 @@ import Image from "next/image";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 import type { GalleryImage, Restaurant } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 const RESTAURANT_SLUG = process.env.NEXT_PUBLIC_RESTAURANT_SLUG;
 
 async function fetchRestaurant() {
