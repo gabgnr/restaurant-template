@@ -11,7 +11,7 @@ async function fetchRestaurant() {
   const supabase = createSupabaseBrowserClient();
 
   const { data, error } = await supabase
-    .from<Restaurant>("restaurants")
+    .from("restaurants")
     .select("*")
     .eq("slug", RESTAURANT_SLUG)
     .single();
@@ -30,12 +30,12 @@ async function fetchMenu(restaurantId: string) {
   const [{ data: categories, error: catError }, { data: items, error: itemError }] =
     await Promise.all([
       supabase
-        .from<MenuCategory>("menu_categories")
+        .from("menu_categories")
         .select("*")
         .eq("restaurant_id", restaurantId)
         .order("position", { ascending: true }),
       supabase
-        .from<MenuItem>("menu_items")
+        .from("menu_items")
         .select("*")
         .eq("restaurant_id", restaurantId)
         .eq("is_available", true)

@@ -14,7 +14,7 @@ async function fetchRestaurant() {
   const supabase = createSupabaseBrowserClient();
 
   const { data, error } = await supabase
-    .from<Restaurant>("restaurants")
+    .from("restaurants")
     .select("*")
     .eq("slug", RESTAURANT_SLUG)
     .single();
@@ -31,7 +31,7 @@ async function fetchGallery(restaurantId: string) {
   const supabase = createSupabaseBrowserClient();
 
   const { data, error } = await supabase
-    .from<GalleryImage>("gallery_images")
+    .from("gallery_images")
     .select("*")
     .eq("restaurant_id", restaurantId)
     .order("position", { ascending: true });
