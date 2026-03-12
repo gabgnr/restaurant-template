@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
-import type { GalleryImage, Restaurant } from "@/lib/types";
+import type { Event, GalleryImage, Restaurant } from "@/lib/types";
+import { NewsletterModal } from "@/components/NewsletterModal";
+import { ReservationForm } from "@/components/ReservationForm";
+import { Cart } from "@/components/Cart";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +49,23 @@ async function fetchGallery(restaurantId: string) {
   return data ?? [];
 }
 
+async function fetchEvents(restaurantId: string) {
+  const supabase = createSupabaseBrowserClient();
+
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .order("event_date", { ascending: true });
+
+  if (error) {
+    console.error("Erreur chargement événements", error);
+    return [];
+  }
+
+  return (data ?? []) as Event[];
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const restaurant = await fetchRestaurant();
 
@@ -87,6 +107,7 @@ export default async function Home() {
   }
 
   const gallery = await fetchGallery(restaurant.id);
+  const events = await fetchEvents(restaurant.id);
 
   const heroHasImage = Boolean(restaurant.cover_image_url);
 
@@ -320,6 +341,153 @@ export default async function Home() {
         </section>
       )}
 
+      {/* GOOGLE MAPS */}
+      {restaurant.address && (
+        <section className="bg-white py-16">
+          <div className="mx-auto max-w-6xl px-4">
+            <h2 className="mb-6 text-center text-3xl font-semibold tracking-tight text-gray-900">
+              Nous trouver
+            </h2>
+            <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+              <iframe
+                title="Carte Google Maps"
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                  restaurant.address,
+                )}&output=embed`}
+                className="h-[400px] w-full"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ÉVÉNEMENTS */}
+      {events.length > 0 && (
+        <section className="bg-gray-50 py-16">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="mb-8 text-center">
+              <h2 className="text-3xl font-semibold tracking-tight text-gray-900">
+                Événements &amp; Soirées
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">
+                Découvrez nos prochains rendez-vous gourmands et musicaux.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              {events.map((event) => (
+                <article
+                  key={event.id}
+                  className="flex h-full flex-col rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                    {new Date(event.event_date).toLocaleDateString("fr-FR", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </p>
+                  <h3 className="mt-2 text-xl font-semibold text-gray-900">
+                    {event.title}
+                  </h3>
+                  {event.description && (
+                    <p className="mt-3 flex-1 text-sm leading-relaxed text-gray-600">
+                      {event.description}
+                    </p>
+                  )}
+                  {event.show_button && event.button_label && (
+                    <div className="mt-4">
+                      <button className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-500">
+                        {event.button_label}
+                      </button>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* RÉSERVATION */}
+      <section className="bg-gray-50 py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-semibold tracking-tight text-gray-900">
+              Réserver une table
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Réservez en ligne, nous confirmerons votre demande dans les plus
+              brefs délais.
+            </p>
+          </div>
+
+          <ReservationForm />
+        </div>
+      </section>
+
+      {/* AVIS CLIENTS */}
+      <section className="bg-white py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-semibold tracking-tight text-gray-900">
+              Ce que disent nos clients
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Des expériences partagées autour de la table.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              {
+                text: "Une cuisine exceptionnelle, service impeccable. Je recommande vivement !",
+                author: "Marie L.",
+              },
+              {
+                text: "Cadre magnifique et plats savoureux. Notre table préférée à Nancy !",
+                author: "Thomas B.",
+              },
+              {
+                text: "Accueil chaleureux et menu varié. Nous reviendrons !",
+                author: "Sophie M.",
+              },
+            ].map((review) => (
+              <article
+                key={review.author}
+                className="flex h-full flex-col rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200"
+              >
+                <div className="mb-3 flex items-center gap-1 text-amber-400">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <svg
+                      key={i}
+                      className="h-4 w-4 fill-current"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 3.25l2.52 4.88 5.38.78-3.9 3.8.92 5.37L12 15.98l-4.82 2.53.92-5.37-3.9-3.8 5.38-.78L12 3.25z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="flex-1 text-sm leading-relaxed text-gray-700">
+                  “{review.text}”
+                </p>
+                <div className="mt-4 flex items-center justify-between text-sm">
+                  <span className="font-semibold text-gray-900">
+                    {review.author}
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white">
+                    Google
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* FOOTER */}
       <footer className="bg-gray-900 py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-4 text-center sm:flex-row sm:text-left">
@@ -386,15 +554,27 @@ export default async function Home() {
               )}
             </div>
 
-            <Link
-              href="/menu"
-              className="text-sm font-medium text-emerald-400 transition hover:text-emerald-300"
-            >
-              Voir la carte
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+              <Link
+                href="/menu"
+                className="font-medium text-emerald-400 transition hover:text-emerald-300"
+              >
+                Voir la carte
+              </Link>
+              <span className="h-4 w-px bg-gray-700" />
+              <Link
+                href="/mentions-legales"
+                className="text-gray-400 transition hover:text-gray-200"
+              >
+                Mentions légales
+              </Link>
+            </div>
           </div>
         </div>
       </footer>
+
+      <NewsletterModal />
+      {restaurant.online_order_enabled && <Cart />}
     </main>
   );
 }

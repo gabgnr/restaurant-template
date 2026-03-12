@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 import type { MenuCategory, MenuItem, Restaurant } from "@/lib/types";
+import { Cart } from "@/components/Cart";
+import { AddToCartButton } from "@/components/AddToCartButton";
 
 export const dynamic = "force-dynamic";
 
@@ -100,8 +102,11 @@ export default async function MenuPage() {
     {}
   );
 
+  const onlineOrderEnabled = restaurant.online_order_enabled === true;
+
   return (
     <main className="min-h-screen bg-gray-50 pb-16">
+      {onlineOrderEnabled && <Cart />}
       {/* Header avec image de couverture */}
       <header className="relative h-48 w-full overflow-hidden bg-emerald-900">
         {restaurant.cover_image_url && (
@@ -181,6 +186,15 @@ export default async function MenuPage() {
                           <p className="text-sm text-gray-500">
                             {item.description}
                           </p>
+                        )}
+                        {onlineOrderEnabled && (
+                          <AddToCartButton
+                            item={{
+                              id: item.id,
+                              name: item.name,
+                              price: item.price,
+                            }}
+                          />
                         )}
                       </div>
                     </article>

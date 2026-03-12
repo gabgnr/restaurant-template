@@ -14,6 +14,7 @@ export type Restaurant = {
   instagram_url: string | null
   seo_title: string | null
   seo_description: string | null
+  online_order_enabled: boolean | null
 }
 
 export type MenuCategory = {
@@ -40,5 +41,16 @@ export type GalleryImage = {
   restaurant_id: string
   image_url: string
   position: number
+}
+
+export type Event = {
+  id: string
+  restaurant_id: string
+  title: string
+  description: string | null
+  event_date: string
+  show_button: boolean
+  button_label: string | null
+  created_at: string
 }
 
